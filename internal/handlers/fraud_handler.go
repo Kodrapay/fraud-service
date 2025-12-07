@@ -1,10 +1,11 @@
 package handlers
 
 import (
-	"time" // Added for time.Second
+	"fmt"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/limiter" // Added limiter import
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/kodra-pay/fraud-service/internal/services"
 )
 
@@ -49,18 +50,18 @@ func (h *FraudAPIHandler) CheckTransaction(c *fiber.Ctx) error {
 
 // TrackPaymentLink handles the request to track a payment link for suspicious activity.
 func (h *FraudAPIHandler) TrackPaymentLink(c *fiber.Ctx) error {
-	var linkData map[string]interface{}
+	var linkData struct {
+		URL string `json:"url"`
+	}
 	if err := c.BodyParser(&linkData); err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Invalid request body")
 	}
 
-	// Manual input validation
-	url, ok := linkData["url"].(string)
-	if !ok || url == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "url is required and must be a string")
+	if linkData.URL == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "url is required")
 	}
 
-	isSuspicious, reason, err := h.svc.TrackPaymentLink(c.Context(), linkData)
+	isSuspicious, reason, err := h.svc.TrackPaymentLink(c.Context(), map[string]interface{}{"url": linkData.URL})
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
@@ -99,11 +100,30 @@ func (h *FraudAPIHandler) ValidatePaymentChannel(c *fiber.Ctx) error {
 	})
 }
 
+// GetTransactionDetails handles the request to get transaction details by reference.
+func (h *FraudAPIHandler) GetTransactionDetails(c *fiber.Ctx) error {
+	reference := c.Params("reference")
+	if reference == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "transaction reference is required")
+	}
+
+	transaction, err := h.svc.GetTransactionDetailsByReference(c.Context(), reference)
+	if err != nil {
+		// Differentiate between "not found" and other errors
+		if err.Error() == fmt.Sprintf("transaction with reference %s not found", reference) {
+			return fiber.NewError(fiber.StatusNotFound, err.Error())
+		}
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(transaction)
+}
+
 // Register adds the fraud-related routes to the Fiber app.
 func (h *FraudAPIHandler) Register(app *fiber.App) {
 	fraudGroup := app.Group("/fraud")
 	fraudGroup.Use(limiter.New(limiter.Config{
-		Max:        5,             // Allow 5 requests
+		Max:        5,               // Allow 5 requests
 		Expiration: 1 * time.Second, // per 1 second
 		KeyGenerator: func(c *fiber.Ctx) string {
 			return c.Get("X-API-Key") // Rate limit per API key
@@ -112,4 +132,5 @@ func (h *FraudAPIHandler) Register(app *fiber.App) {
 	fraudGroup.Post("/check-transaction", h.CheckTransaction)
 	fraudGroup.Post("/track-payment-link", h.TrackPaymentLink)
 	fraudGroup.Post("/validate-payment-channel", h.ValidatePaymentChannel)
+	fraudGroup.Get("/transactions/:reference", h.GetTransactionDetails) // New route
 }
