@@ -1,11 +1,11 @@
 package dto
 
 type RiskEvaluateRequest struct {
-	TransactionReference int     `json:"transaction_reference"`
+	TransactionReference string  `json:"transaction_reference"`
 	Amount               float64 `json:"amount"`
 	Currency             string  `json:"currency"`
-	CustomerID           int     `json:"customer_id"`
-	MerchantID           int     `json:"merchant_id"`
+	CustomerID           string  `json:"customer_id"`
+	MerchantID           string  `json:"merchant_id"`
 }
 
 type RiskEvaluateResponse struct {

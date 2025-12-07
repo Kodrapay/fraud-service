@@ -14,6 +14,7 @@ func main() {
 
 	app := fiber.New()
 	app.Use(middleware.RequestID())
+	app.Use(middleware.APIKeyAuth(cfg.APIKey))
 
 	routes.Register(app, cfg.ServiceName)
 
