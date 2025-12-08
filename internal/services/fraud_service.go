@@ -24,7 +24,7 @@ type TransactionResponse struct {
 	CustomerEmail string    `json:"customer_email"`
 	CustomerID    int       `json:"customer_id"`
 	CustomerName  string    `json:"customer_name,omitempty"`
-	Amount        int64     `json:"amount"`
+	Amount        float64   `json:"amount"` // currency units (e.g., NGN)
 	Currency      string    `json:"currency"`
 	Status        string    `json:"status"`
 	Description   string    `json:"description,omitempty"`
@@ -206,11 +206,11 @@ func (s *FraudService) ValidatePaymentLink(ctx context.Context, linkUrl string) 
 
 	amountStr := queryParams.Get("amount")
 
-			currency := queryParams.Get("currency")
+	currency := queryParams.Get("currency")
 
-			mode := queryParams.Get("mode") // For future use, if 'open' links have different validation
+	mode := queryParams.Get("mode") // For future use, if 'open' links have different validation
 
-			_ = mode
+	_ = mode
 
 	if ref == "" || merchantIDStr == "" || amountStr == "" || currency == "" {
 
@@ -228,7 +228,7 @@ func (s *FraudService) ValidatePaymentLink(ctx context.Context, linkUrl string) 
 
 	}
 
-	amount, err := strconv.ParseInt(amountStr, 10, 64)
+	amount, err := strconv.ParseFloat(amountStr, 64)
 
 	if err != nil {
 
@@ -264,7 +264,7 @@ func (s *FraudService) ValidatePaymentLink(ctx context.Context, linkUrl string) 
 
 	if originalTx.Amount != amount {
 
-		return true, fmt.Sprintf("Amount mismatch: link has %d, original has %d", amount, originalTx.Amount), nil
+		return true, fmt.Sprintf("Amount mismatch: link has %.2f, original has %.2f", amount, originalTx.Amount), nil
 
 	}
 
