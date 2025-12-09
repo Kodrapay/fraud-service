@@ -4,9 +4,9 @@ package fraud
 type FraudRule struct {
 	ID          string
 	Description string
-	Threshold   float64   // Threshold for the rule to trigger
-	ScoreImpact float64   // Score added if this rule is triggered
-	Decision    string    // "approve", "flag", "deny" if this rule is triggered
+	Threshold   float64 // Threshold for the rule to trigger
+	ScoreImpact float64 // Score added if this rule is triggered
+	Decision    string  // "approve", "flag", "deny" if this rule is triggered
 	Enabled     bool
 	Predicate   func(transactionData map[string]interface{}) (bool, error) // Function to evaluate the rule
 }
@@ -17,13 +17,13 @@ func DefaultRules() []FraudRule {
 		{
 			ID:          "HIGH_AMOUNT_TRANSACTION",
 			Description: "Flags transactions with amounts exceeding a high threshold.",
-			Threshold:   1000.00,
+			Threshold:   10000000.00, // 10,000,000 (e.g., NGN)
 			ScoreImpact: 50.0,
 			Decision:    "flag",
 			Enabled:     true,
 			Predicate: func(transactionData map[string]interface{}) (bool, error) {
 				if amount, ok := transactionData["amount"].(float64); ok {
-					return amount > 1000.00, nil
+					return amount > 10000000.00, nil
 				}
 				return false, nil // Or return error if amount is missing/invalid
 			},
